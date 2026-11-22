@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
@@ -103,7 +104,7 @@
         <div class="flex items-center justify-between border-b pb-3">
           <div>
             <h2 class="text-base font-bold text-slate-800">Guest Entry & Billing Form</h2>
-            <p class="text-xs text-slate-500">Purana Invoice No. dalne par record load ho jayega (Date format: dd-mm-yyyy)</p>
+            <p class="text-xs text-slate-500">Purana Invoice No. dalne par record load ho jayega</p>
           </div>
           <button type="button" onclick="resetFormForNewBill()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300">
             + New Bill
@@ -119,7 +120,7 @@
                 class="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm font-bold text-slate-900 focus:border-amber-500 focus:outline-none bg-white" />
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-slate-700 uppercase">Invoice Date (dd-mm-yyyy)</label>
+              <label class="block text-[11px] font-bold text-slate-700 uppercase">Invoice Date</label>
               <input type="date" id="invoiceDate" oninput="updateLivePreview()"
                 class="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none bg-white" />
             </div>
@@ -175,12 +176,12 @@
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700">Check-In (dd-mm-yyyy) *</label>
+                <label class="block text-xs font-semibold text-slate-700">Check-In Date *</label>
                 <input type="date" id="checkIn" onchange="recalculateAll()" required
                   class="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-700">Check-Out (dd-mm-yyyy)</label>
+                <label class="block text-xs font-semibold text-slate-700">Check-Out Date</label>
                 <input type="date" id="checkOut" onchange="recalculateAll()"
                   class="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm" />
               </div>
@@ -234,8 +235,9 @@
                 <input type="number" step="0.01" id="foodGstPct" value="5" oninput="recalculateAll()"
                   class="w-16 rounded border border-slate-300 px-2 py-1 text-xs font-semibold bg-white" />
               </div>
-              <div class="font-semibold text-slate-700">
-                Food Total (With GST): ₹<span id="foodTotalDisplay">0.00</span>
+              <div class="text-right font-semibold text-slate-700 space-y-0.5">
+                <div>Without Tax: ₹<span id="foodSubDisplay">0.00</span> + GST (<span id="foodGstPctLabel">5</span>%): ₹<span id="foodTaxDisplay">0.00</span></div>
+                <div class="text-slate-900 font-bold">Food Total (With GST): ₹<span id="foodTotalDisplay">0.00</span></div>
               </div>
             </div>
           </div>
@@ -326,7 +328,7 @@
             </div>
           </div>
 
-          <!-- Guest & Stay Info Grid -->
+          <!-- Guest & Stay Info Grid (No Room Status shown here) -->
           <div class="grid grid-cols-2 gap-4 py-3 border-b border-slate-200 text-xs">
             <div class="space-y-1">
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Billed To (Guest Details)</p>
@@ -385,6 +387,21 @@
                 <span>Total Room Tariff (with taxes):</span>
                 <span>₹<span id="inv-room-tariff-with-tax">0.00</span></span>
               </div>
+              <div id="inv-food-breakdown-box" class="mt-2 pt-2 border-t border-slate-300 space-y-0.5">
+                <p class="font-bold text-slate-700 underline">Food Tax Breakdown</p>
+                <div class="flex justify-between text-slate-600">
+                  <span>Food Amount (Without Tax):</span>
+                  <span class="font-medium">₹<span id="inv-food-bd-sub">0.00</span></span>
+                </div>
+                <div class="flex justify-between text-slate-600">
+                  <span>GST (<span id="inv-food-bd-pct">5</span>%):</span>
+                  <span class="font-medium">₹<span id="inv-food-bd-tax">0.00</span></span>
+                </div>
+                <div class="flex justify-between font-bold text-slate-900 border-t border-slate-200 pt-0.5">
+                  <span>Food Total (With GST):</span>
+                  <span>₹<span id="inv-food-bd-total">0.00</span></span>
+                </div>
+              </div>
             </div>
 
             <div class="space-y-1.5">
@@ -393,8 +410,16 @@
                 <span class="font-semibold">₹<span id="inv-sum-room">0.00</span></span>
               </div>
               <div class="flex justify-between text-slate-700">
-                <span>Food Charges + GST (<span id="inv-food-gst-pct">5</span>%):</span>
-                <span class="font-semibold">₹<span id="inv-sum-food">0.00</span></span>
+                <span>Food Without Tax:</span>
+                <span class="font-medium">₹<span id="inv-food-sub">0.00</span></span>
+              </div>
+              <div class="flex justify-between text-slate-700">
+                <span>Food GST (<span id="inv-food-gst-pct">5</span>%):</span>
+                <span class="font-medium">₹<span id="inv-food-tax">0.00</span></span>
+              </div>
+              <div class="flex justify-between text-slate-800 font-semibold">
+                <span>Food Total (With GST):</span>
+                <span>₹<span id="inv-sum-food">0.00</span></span>
               </div>
               <div class="flex justify-between text-slate-700">
                 <span>Extra Services + GST (<span id="inv-srv-gst-pct">0</span>%):</span>
@@ -412,14 +437,18 @@
                 <span>Total Payable Amount:</span>
                 <span>₹<span id="inv-grand-total">0.00</span></span>
               </div>
+              <div class="bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-[11px] text-slate-800">
+                <span class="font-semibold text-slate-600">Total Payable Amount: </span>
+                <span id="inv-amount-in-words" class="font-bold text-slate-900">Rupees Zero Only</span>
+              </div>
             </div>
           </div>
 
           <!-- Footer Signature -->
           <div class="mt-6 pt-4 border-t border-slate-200 flex items-end justify-between text-[11px] text-slate-500">
             <div>
-              <p class="font-semibold text-slate-700">Thank you for staying with us!</p>
-              <p>Subject to local jurisdiction. Computer generated invoice.</p>
+              <p id="inv-footer-greeting" class="font-semibold text-slate-700">Thank you for staying with us!</p>
+              <p id="inv-footer-terms" class="whitespace-pre-line">Subject to local jurisdiction. Computer generated invoice.</p>
             </div>
             <div class="text-right">
               <div class="h-8"></div>
@@ -435,7 +464,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 class="text-base font-bold text-slate-800">Saved Guest Records — <span id="active-filter-label" class="text-amber-700">All Rooms</span></h2>
-          <p class="text-xs text-slate-500">Kisi bhi row par click karke invoice load karein, ya ✕ button se entry delete karein (Dates in dd-mm-yyyy)</p>
+          <p class="text-xs text-slate-500">Kisi bhi row par click karke invoice load karein, ya ✕ button se entry delete karein</p>
         </div>
         <input type="text" id="tableSearch" oninput="renderRecordsTable()" placeholder="Search Invoice No, Name, Room No..."
           class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs w-64 focus:border-slate-500 focus:outline-none" />
@@ -503,9 +532,18 @@
           <input type="text" id="set-prop-gst" class="mt-1 w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm" />
         </div>
         <div>
-          <label class="block font-semibold text-slate-700">Upload Logo (From Device/Desktop)</label>
-          <input type="file" id="set-prop-logo" accept="image/*" onchange="handleLogoUpload(event)" class="mt-1 w-full text-xs" />
+          <label class="block font-semibold text-slate-700">Upload Logo (PNG, JPG, SVG, WebP or PDF)</label>
+          <input type="file" id="set-prop-logo" accept="image/*,application/pdf,.pdf,.png,.jpg,.jpeg,.webp,.svg" onchange="handleLogoUpload(event)" class="mt-1 w-full text-xs" />
+          <p id="set-logo-status" class="text-[11px] text-slate-500 mt-0.5">High-res PNG & PDF supported without blur</p>
           <button type="button" onclick="removeLogo()" class="mt-1 text-rose-600 underline text-[11px]">Remove Logo</button>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700">Footer Greeting (Editable)</label>
+          <input type="text" id="set-footer-greeting" class="mt-1 w-full rounded border border-slate-300 px-2.5 py-1.5 text-xs" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700">Footer Note / Jurisdiction / Custom Terms (Editable)</label>
+          <textarea id="set-footer-terms" rows="2" class="mt-1 w-full rounded border border-slate-300 px-2.5 py-1.5 text-xs"></textarea>
         </div>
       </div>
       <div class="flex justify-end gap-2 pt-2 border-t">
@@ -526,24 +564,53 @@
       font: 'font-heritage-playfair',
       address: 'Mall Road, Heritage Enclave',
       gst: '05AAAAA0000A1Z5',
-      logo: ''
+      logo: '',
+      footerGreeting: 'Thank you for staying with us!',
+      footerTerms: 'Subject to local jurisdiction. Computer generated invoice.'
     }));
+    if (settings.footerGreeting === undefined) settings.footerGreeting = 'Thank you for staying with us!';
+    if (settings.footerTerms === undefined) settings.footerTerms = 'Subject to local jurisdiction. Computer generated invoice.';
+
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    function numberToIndianWords(num) {
+      const amount = Math.round(Number(num) || 0);
+      if (amount === 0) return 'Rupees Zero Only';
+      const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+        'Seventeen', 'Eighteen', 'Nineteen'];
+      const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+      function belowThousand(n) {
+        let s = '';
+        if (n >= 100) {
+          s += ones[Math.floor(n / 100)] + ' Hundred ';
+          n %= 100;
+        }
+        if (n >= 20) {
+          s += tens[Math.floor(n / 10)] + ' ';
+          n %= 10;
+        }
+        if (n > 0) s += ones[n] + ' ';
+        return s.trim();
+      }
+      let n = amount;
+      const parts = [];
+      const crore = Math.floor(n / 10000000);
+      if (crore > 0) { parts.push(belowThousand(crore) + ' Crore'); n %= 10000000; }
+      const lakh = Math.floor(n / 100000);
+      if (lakh > 0) { parts.push(belowThousand(lakh) + ' Lakh'); n %= 100000; }
+      const thousand = Math.floor(n / 1000);
+      if (thousand > 0) { parts.push(belowThousand(thousand) + ' Thousand'); n %= 1000; }
+      if (n > 0) parts.push(belowThousand(n));
+      return 'Rupees ' + parts.join(' ').replace(/\s+/g, ' ').trim() + ' Only';
+    }
 
     let currentCategoryFilter = 'ALL';
     let roomItems = [];
     let foodItems = [];
     let serviceItems = [];
-
-    // Format yyyy-mm-dd -> dd-mm-yyyy
-    function formatDateDMY(isoDateStr) {
-      if (!isoDateStr || typeof isoDateStr !== 'string') return '-';
-      const clean = isoDateStr.trim();
-      const parts = clean.split('-');
-      if (parts.length === 3 && parts[0].length === 4) {
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-      return clean;
-    }
 
     function initApp() {
       applySettingsToUI();
@@ -681,40 +748,89 @@
     }
 
     function updateRoomTotalsOnly() {
-      const nights = Math.max(1, parseInt(document.getElementById('stayNights').value, 10) || 1);
+      const mainNights = Math.max(1, parseInt(document.getElementById('stayNights').value, 10) || 1);
       roomItems.forEach((rm, idx) => {
         const subEl = document.getElementById(`room-row-total-${idx}`);
         if (subEl) {
-          const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * nights;
+          const rmNights = calcRoomNights(rm, mainNights);
+          const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * rmNights;
           subEl.textContent = `₹${lineAmt.toFixed(0)}`;
         }
       });
     }
 
+    function calcRoomNights(rm, fallbackNights) {
+      if (rm.checkIn && rm.checkOut) {
+        const d1 = new Date(rm.checkIn + 'T00:00:00');
+        const d2 = new Date(rm.checkOut + 'T00:00:00');
+        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        if (diff > 0) return diff;
+      }
+      return Math.max(1, parseInt(rm.nights, 10) || fallbackNights || 1);
+    }
+
+    function onRoomDateChange(idx, field, val) {
+      roomItems[idx][field] = val;
+      if (roomItems[idx].checkIn && roomItems[idx].checkOut) {
+        const d1 = new Date(roomItems[idx].checkIn + 'T00:00:00');
+        const d2 = new Date(roomItems[idx].checkOut + 'T00:00:00');
+        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        roomItems[idx].nights = diff > 0 ? diff : 1;
+      }
+      renderRoomRows();
+      recalculateAll(true);
+    }
+
     function renderRoomRows() {
       const container = document.getElementById('room-items-container');
-      const nights = Math.max(1, parseInt(document.getElementById('stayNights').value, 10) || 1);
+      const mainNights = Math.max(1, parseInt(document.getElementById('stayNights').value, 10) || 1);
+      const mainIn = document.getElementById('checkIn').value || '';
+      const mainOut = document.getElementById('checkOut').value || '';
       container.innerHTML = '';
       roomItems.forEach((rm, idx) => {
-        const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * nights;
+        if (!rm.checkIn && mainIn) rm.checkIn = mainIn;
+        if (!rm.checkOut && mainOut) rm.checkOut = mainOut;
+        const rmNights = calcRoomNights(rm, mainNights);
+        rm.nights = rmNights;
+        const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * rmNights;
         const div = document.createElement('div');
-        div.className = 'grid grid-cols-12 gap-1.5 items-center bg-slate-50/80 p-2 rounded-lg border border-slate-200';
+        div.className = 'bg-slate-50/80 p-2.5 rounded-lg border border-slate-200 space-y-2';
         div.innerHTML = `
-          <select onchange="roomItems[${idx}].roomType=this.value; updateLivePreview()"
-            class="col-span-4 rounded border border-slate-300 px-1.5 py-1 text-xs bg-white">
-            <option value="Maharaja Suite" ${rm.roomType === 'Maharaja Suite' ? 'selected' : ''}>Maharaja Suite</option>
-            <option value="Suite" ${rm.roomType === 'Suite' ? 'selected' : ''}>Suite</option>
-            <option value="Cottage" ${rm.roomType === 'Cottage' ? 'selected' : ''}>Cottage</option>
-            <option value="Single Room" ${rm.roomType === 'Single Room' ? 'selected' : ''}>Single Room</option>
-          </select>
-          <input type="text" placeholder="Room No" value="${rm.roomNo}"
-            oninput="roomItems[${idx}].roomNo=this.value; updateLivePreview()"
-            class="col-span-2 rounded border border-slate-300 px-2 py-1 text-xs bg-white" />
-          <input type="number" step="0.01" placeholder="Tariff/Night" value="${rm.tariffPerNight}"
-            oninput="roomItems[${idx}].tariffPerNight=parseFloat(this.value)||0; updateRoomTotalsOnly(); recalculateAll()"
-            class="col-span-3 rounded border border-slate-300 px-2 py-1 text-xs text-right bg-white" />
-          <div id="room-row-total-${idx}" class="col-span-2 text-right text-xs font-bold text-slate-800 pr-0.5">₹${lineAmt.toFixed(0)}</div>
-          <button type="button" onclick="removeRoomRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-100 rounded py-1 font-bold text-xs">✕</button>
+          <div class="grid grid-cols-12 gap-1.5 items-center">
+            <select onchange="roomItems[${idx}].roomType=this.value; updateLivePreview()"
+              class="col-span-4 rounded border border-slate-300 px-1.5 py-1 text-xs bg-white">
+              <option value="Maharaja Suite" ${rm.roomType === 'Maharaja Suite' ? 'selected' : ''}>Maharaja Suite</option>
+              <option value="Suite" ${rm.roomType === 'Suite' ? 'selected' : ''}>Suite</option>
+              <option value="Cottage" ${rm.roomType === 'Cottage' ? 'selected' : ''}>Cottage</option>
+              <option value="Single Room" ${rm.roomType === 'Single Room' ? 'selected' : ''}>Single Room</option>
+            </select>
+            <input type="text" placeholder="Room No" value="${rm.roomNo || ''}"
+              oninput="roomItems[${idx}].roomNo=this.value; updateLivePreview()"
+              class="col-span-2 rounded border border-slate-300 px-2 py-1 text-xs bg-white" />
+            <input type="number" step="0.01" placeholder="Tariff/Night" value="${rm.tariffPerNight}"
+              oninput="roomItems[${idx}].tariffPerNight=parseFloat(this.value)||0; updateRoomTotalsOnly(); recalculateAll()"
+              class="col-span-3 rounded border border-slate-300 px-2 py-1 text-xs text-right bg-white" />
+            <div id="room-row-total-${idx}" class="col-span-2 text-right text-xs font-bold text-slate-800 pr-0.5">₹${lineAmt.toFixed(0)}</div>
+            <button type="button" onclick="removeRoomRow(${idx})" class="col-span-1 text-rose-600 hover:bg-rose-100 rounded py-1 font-bold text-xs">✕</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80 text-[11px]">
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500">Room Check-In</label>
+              <input type="date" value="${rm.checkIn || ''}" onchange="onRoomDateChange(${idx}, 'checkIn', this.value)"
+                class="mt-0.5 w-full rounded border border-slate-300 px-1.5 py-0.5 text-[11px] bg-white" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500">Room Check-Out</label>
+              <input type="date" value="${rm.checkOut || ''}" onchange="onRoomDateChange(${idx}, 'checkOut', this.value)"
+                class="mt-0.5 w-full rounded border border-slate-300 px-1.5 py-0.5 text-[11px] bg-white" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500">Room Nights</label>
+              <input type="number" min="1" value="${rmNights}"
+                oninput="roomItems[${idx}].nights=Math.max(1,parseInt(this.value,10)||1); updateRoomTotalsOnly(); recalculateAll(true)"
+                class="mt-0.5 w-full rounded border border-slate-300 px-1.5 py-0.5 text-[11px] font-semibold bg-white text-center" />
+            </div>
+          </div>
         `;
         container.appendChild(div);
       });
@@ -798,12 +914,17 @@
     }
 
     function calculateMetrics(data) {
-      const nights = Math.max(1, parseInt(data.stayNights, 10) || 1);
+      const mainNights = Math.max(1, parseInt(data.stayNights, 10) || 1);
       const rooms = normalizeRoomItems(data);
       let totalRoomIncl = 0;
+      let totalRoomNights = 0;
       rooms.forEach(rm => {
-        totalRoomIncl += (parseFloat(rm.tariffPerNight) || 0) * nights;
+        const rmNights = calcRoomNights(rm, mainNights);
+        rm.computedNights = rmNights;
+        totalRoomNights += rmNights;
+        totalRoomIncl += (parseFloat(rm.tariffPerNight) || 0) * rmNights;
       });
+      const nights = rooms.length > 1 ? totalRoomNights : (rooms[0]?.computedNights || mainNights);
 
       const cgstPct = parseFloat(data.cgstPct) || 0;
       const sgstPct = parseFloat(data.sgstPct) || 0;
@@ -869,6 +990,9 @@
 
       document.getElementById('roomExclTaxDisplay').value = m.baseExclTax.toFixed(2);
       document.getElementById('roomTotalInclDisplay').value = m.totalRoomIncl.toFixed(2);
+      document.getElementById('foodSubDisplay').textContent = m.foodSub.toFixed(2);
+      document.getElementById('foodGstPctLabel').textContent = m.foodGstPct;
+      document.getElementById('foodTaxDisplay').textContent = m.foodTax.toFixed(2);
       document.getElementById('foodTotalDisplay').textContent = m.foodWithTax.toFixed(2);
       document.getElementById('serviceTotalDisplay').textContent = m.srvWithTax.toFixed(2);
       document.getElementById('netPayableFormDisplay').textContent = m.netPayable.toFixed(2);
@@ -880,7 +1004,10 @@
       const cleanedRooms = roomItems.map(r => ({
         roomType: r.roomType || 'Maharaja Suite',
         roomNo: (r.roomNo || '').trim(),
-        tariffPerNight: parseFloat(r.tariffPerNight) || 0
+        tariffPerNight: parseFloat(r.tariffPerNight) || 0,
+        checkIn: r.checkIn || document.getElementById('checkIn').value || '',
+        checkOut: r.checkOut || document.getElementById('checkOut').value || '',
+        nights: calcRoomNights(r, parseInt(document.getElementById('stayNights').value, 10) || 1)
       }));
       return {
         invoiceNo: document.getElementById('invoiceNo').value.trim(),
@@ -913,7 +1040,7 @@
       const m = calculateMetrics(d);
 
       document.getElementById('inv-no-display').textContent = d.invoiceNo || '-';
-      document.getElementById('inv-date-display').textContent = formatDateDMY(d.invoiceDate);
+      document.getElementById('inv-date-display').textContent = d.invoiceDate || '-';
       document.getElementById('inv-guest-name').textContent = d.customerName || 'Guest Name';
       document.getElementById('inv-guest-address').textContent = d.address || '-';
       document.getElementById('inv-guest-mobile').textContent = d.mobileNo || '-';
@@ -921,19 +1048,21 @@
 
       const roomSummaryStr = m.rooms.map(r => `${r.roomType}${r.roomNo ? ' #' + r.roomNo : ''}`).join(', ') || '-';
       document.getElementById('inv-rooms-summary').textContent = roomSummaryStr;
-      document.getElementById('inv-checkin').textContent = formatDateDMY(d.checkIn);
-      document.getElementById('inv-checkout').textContent = d.checkOut ? formatDateDMY(d.checkOut) : 'Active Stay';
+      document.getElementById('inv-checkin').textContent = d.checkIn || '-';
+      document.getElementById('inv-checkout').textContent = d.checkOut || 'Active Stay';
       document.getElementById('inv-nights').textContent = `${m.nights} Night(s)`;
 
       const tbody = document.getElementById('inv-line-items');
       tbody.innerHTML = '';
 
       m.rooms.forEach(rm => {
-        const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * m.nights;
+        const rmNights = rm.computedNights || calcRoomNights(rm, m.nights);
+        const lineAmt = (parseFloat(rm.tariffPerNight) || 0) * rmNights;
+        const stayNote = (rm.checkIn || rm.checkOut) ? ` (${rm.checkIn || '-'} to ${rm.checkOut || 'Active'})` : '';
         tbody.innerHTML += `
           <tr>
-            <td class="py-2 px-2 font-medium text-slate-900">Room Tariff — ${rm.roomType} (Room ${rm.roomNo || '-'}) <span class="text-[10px] text-slate-500">[Incl. GST]</span></td>
-            <td class="py-2 px-2 text-center">${m.nights}</td>
+            <td class="py-2 px-2 font-medium text-slate-900">Room Tariff — ${rm.roomType} (Room ${rm.roomNo || '-'})<span class="text-[10px] text-slate-500">${stayNote} [Incl. GST]</span></td>
+            <td class="py-2 px-2 text-center">${rmNights}</td>
             <td class="py-2 px-2 text-right">${(parseFloat(rm.tariffPerNight) || 0).toFixed(2)}</td>
             <td class="py-2 px-2 text-right font-semibold">${lineAmt.toFixed(2)}</td>
           </tr>
@@ -973,13 +1102,20 @@
       document.getElementById('inv-room-tariff-with-tax').textContent = m.totalRoomIncl.toFixed(2);
 
       document.getElementById('inv-sum-room').textContent = m.totalRoomIncl.toFixed(2);
+      document.getElementById('inv-food-sub').textContent = m.foodSub.toFixed(2);
+      document.getElementById('inv-food-tax').textContent = m.foodTax.toFixed(2);
       document.getElementById('inv-food-gst-pct').textContent = m.foodGstPct;
       document.getElementById('inv-sum-food').textContent = m.foodWithTax.toFixed(2);
+      document.getElementById('inv-food-bd-sub').textContent = m.foodSub.toFixed(2);
+      document.getElementById('inv-food-bd-pct').textContent = m.foodGstPct;
+      document.getElementById('inv-food-bd-tax').textContent = m.foodTax.toFixed(2);
+      document.getElementById('inv-food-bd-total').textContent = m.foodWithTax.toFixed(2);
       document.getElementById('inv-srv-gst-pct').textContent = m.srvGstPct;
       document.getElementById('inv-sum-srv').textContent = m.srvWithTax.toFixed(2);
       document.getElementById('inv-sum-disc').textContent = m.discount.toFixed(2);
       document.getElementById('inv-sum-adv').textContent = m.advance.toFixed(2);
       document.getElementById('inv-grand-total').textContent = m.netPayable.toFixed(2);
+      document.getElementById('inv-amount-in-words').textContent = numberToIndianWords(m.netPayable);
     }
 
     function handleSaveAndExport(e) {
@@ -1047,14 +1183,14 @@
         const tariffsStr = m.rooms.map(rm => `${rm.roomType}(${rm.roomNo || '-'}): ₹${rm.tariffPerNight}`).join(', ');
         return {
           'Invoice No': r.invoiceNo,
-          'Invoice Date': formatDateDMY(r.invoiceDate),
+          'Invoice Date': r.invoiceDate,
           'Customer Name': r.customerName,
           'ID Proof': r.idProof,
           'ID No': r.idNo,
           'Address': r.address,
           'Mobile No': r.mobileNo,
-          'Check In': formatDateDMY(r.checkIn),
-          'Check Out': r.checkOut ? formatDateDMY(r.checkOut) : '',
+          'Check In': r.checkIn,
+          'Check Out': r.checkOut,
           'Total Stay Nights': m.nights,
           'Room Type': roomTypesStr,
           'Room No': roomNosStr,
@@ -1080,8 +1216,7 @@
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Guest Details');
-      const todayDMY = formatDateDMY(new Date().toISOString().split('T')[0]);
-      XLSX.writeFile(wb, `Guest_Billing_Records_${todayDMY}.xlsx`);
+      XLSX.writeFile(wb, `Guest_Billing_Records_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     function filterByRoomCategory(cat) {
@@ -1152,8 +1287,8 @@
           <td class="py-2 px-2.5 font-bold text-slate-900">${r.invoiceNo}</td>
           <td class="py-2 px-2.5 font-medium">${r.customerName}</td>
           <td class="py-2 px-2.5">${r.mobileNo || '-'}</td>
-          <td class="py-2 px-2.5">${formatDateDMY(r.checkIn)}</td>
-          <td class="py-2 px-2.5">${r.checkOut ? formatDateDMY(r.checkOut) : '-'}</td>
+          <td class="py-2 px-2.5">${r.checkIn || '-'}</td>
+          <td class="py-2 px-2.5">${r.checkOut || '-'}</td>
           <td class="py-2 px-2.5 text-center">${m.nights}</td>
           <td class="py-2 px-2.5">${roomTypesDisplay}</td>
           <td class="py-2 px-2.5 font-semibold">${roomNosDisplay}</td>
@@ -1180,6 +1315,8 @@
       document.getElementById('set-prop-font').value = settings.font || 'font-heritage-playfair';
       document.getElementById('set-prop-address').value = settings.address;
       document.getElementById('set-prop-gst').value = settings.gst;
+      document.getElementById('set-footer-greeting').value = settings.footerGreeting ?? 'Thank you for staying with us!';
+      document.getElementById('set-footer-terms').value = settings.footerTerms ?? 'Subject to local jurisdiction. Computer generated invoice.';
       document.getElementById('settings-modal').classList.remove('hidden');
       document.getElementById('settings-modal').classList.add('flex');
     }
@@ -1189,12 +1326,68 @@
       document.getElementById('settings-modal').classList.remove('flex');
     }
 
-    function handleLogoUpload(event) {
+    function trimLogoCanvas(canvas) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let minX = w, minY = h, maxX = 0, maxY = 0, found = false;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          if (data[i + 3] > 15 && !(data[i] > 248 && data[i + 1] > 248 && data[i + 2] > 248)) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            found = true;
+          }
+        }
+      }
+      if (!found) return canvas.toDataURL('image/png');
+      const pad = 10;
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(w - 1, maxX + pad);
+      maxY = Math.min(h - 1, maxY + pad);
+      const cw = maxX - minX + 1, ch = maxY - minY + 1;
+      const out = document.createElement('canvas');
+      out.width = cw;
+      out.height = ch;
+      out.getContext('2d').drawImage(canvas, minX, minY, cw, ch, 0, 0, cw, ch);
+      return out.toDataURL('image/png');
+    }
+
+    async function handleLogoUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
+      const statusEl = document.getElementById('set-logo-status');
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        if (!window.pdfjsLib) {
+          alert('PDF renderer loading, please try again.');
+          return;
+        }
+        if (statusEl) statusEl.textContent = 'Rendering crisp high-res PDF logo...';
+        try {
+          const buf = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 4.0 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport, background: 'rgba(0,0,0,0)' }).promise;
+          settings.logo = trimLogoCanvas(canvas);
+          if (statusEl) statusEl.textContent = `PDF logo ready (${file.name})`;
+        } catch (err) {
+          console.error(err);
+          alert('Could not read PDF logo.');
+        }
+        return;
+      }
       const reader = new FileReader();
       reader.onload = function(e) {
         settings.logo = e.target.result;
+        if (statusEl) statusEl.textContent = `Logo selected (${file.name})`;
       };
       reader.readAsDataURL(file);
     }
@@ -1202,6 +1395,8 @@
     function removeLogo() {
       settings.logo = '';
       document.getElementById('set-prop-logo').value = '';
+      const statusEl = document.getElementById('set-logo-status');
+      if (statusEl) statusEl.textContent = 'Logo removed';
     }
 
     function saveSettings() {
@@ -1210,6 +1405,8 @@
       settings.font = document.getElementById('set-prop-font').value;
       settings.address = document.getElementById('set-prop-address').value.trim();
       settings.gst = document.getElementById('set-prop-gst').value.trim();
+      settings.footerGreeting = document.getElementById('set-footer-greeting').value;
+      settings.footerTerms = document.getElementById('set-footer-terms').value;
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
       applySettingsToUI();
       closeSettingsModal();
@@ -1229,6 +1426,11 @@
 
       document.getElementById('inv-prop-address').textContent = settings.address;
       document.getElementById('inv-prop-gst').textContent = settings.gst ? `GSTIN: ${settings.gst}` : '';
+
+      const fgEl = document.getElementById('inv-footer-greeting');
+      if (fgEl) fgEl.textContent = settings.footerGreeting ?? 'Thank you for staying with us!';
+      const ftEl = document.getElementById('inv-footer-terms');
+      if (ftEl) ftEl.textContent = settings.footerTerms ?? 'Subject to local jurisdiction. Computer generated invoice.';
 
       const logoEl = document.getElementById('inv-logo');
       if (settings.logo) {
